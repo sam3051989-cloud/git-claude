@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: S3 bucket with encryption and bucket policy
+
+Resources:
+  MyDemoS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-mydemos3b-${AWS::AccountId}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: alias/aws/s3
+      PublicAccessBlockConfiguration:
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  MyDemoS3BucketBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MyDemoS3Bucket
+      PolicyDocument:
+        Id: RequireEncryptionInTransit
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyUnEncryptedTransport
+            Effect: Deny
+            Principal: "*"
+            Action: "s3:*"
+            Resource:
+              - !GetAtt MyDemoS3Bucket.Arn
+              - !Sub "${MyDemoS3Bucket.Arn}/*"
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
